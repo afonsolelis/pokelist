@@ -59,7 +59,10 @@ if search_term:
                 with col2:
                     st.subheader(card_name)
                     st.write(f"**Lista:** {list_name}")
-                    st.write(f"**Número:** {number}/{total}")
+                    if total:
+                        st.write(f"**Número:** {number}/{total}")
+                    else:
+                        st.write(f"**Número:** {number}")
                     st.write(f"**Linguagem:** {lang}")
                     st.write(f"**Condição:** {condition}")
                     if grading_note:

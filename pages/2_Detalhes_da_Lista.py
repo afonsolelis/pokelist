@@ -93,7 +93,10 @@ else:
         
         with col2:
             st.subheader(name)
-            st.write(f"**Número:** {number}/{total}")
+            if total:
+                st.write(f"**Número:** {number}/{total}")
+            else:
+                st.write(f"**Número:** {number}")
             st.write(f"**Linguagem:** {lang}")
             st.write(f"**Condição:** {condition}")
             if grading_note:
@@ -126,8 +129,8 @@ with st.expander("Adicionar Novo Card à Lista"):
         uploaded_file = st.file_uploader("Foto do Card", type=["png", "jpg", "jpeg"])
         
         c1, c2 = st.columns(2)
-        card_number = c1.number_input("Número do Card", min_value=1, step=1)
-        collection_total = c2.number_input("Total da Coleção", min_value=1, step=1)
+        card_number = c1.text_input("Número do Card")
+        collection_total = c2.number_input("Total da Coleção (Opcional)", min_value=1, step=1, value=None)
         
         c3, c4 = st.columns(2)
         language = c3.selectbox("Linguagem", options=LANGUAGES)
@@ -139,7 +142,7 @@ with st.expander("Adicionar Novo Card à Lista"):
 
         submitted = st.form_submit_button("Adicionar Card")
         if submitted:
-            if uploaded_file and card_name and card_number and collection_total:
+            if uploaded_file and card_name and card_number:
                 try:
                     upload_result = cloudinary.uploader.upload(uploaded_file)
                     photo_url = upload_result['secure_url']
@@ -159,4 +162,4 @@ with st.expander("Adicionar Novo Card à Lista"):
                 except Exception as e:
                     st.error(f"Ocorreu um erro: {e}")
             else:
-                st.warning("Por favor, preencha todos os campos e envie uma imagem.")
+                st.warning("Por favor, preencha todos os campos obrigatórios e envie uma imagem.")
