@@ -35,7 +35,7 @@ list_name = st.session_state['current_list_name']
 def get_cards_for_list(list_id):
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT id, name, photo_url, card_number, collection_total, language, card_order FROM cards WHERE list_id = %s ORDER BY card_order ASC", (list_id,))
+    cur.execute("SELECT id, name, photo_url, card_number, collection_total, language, card_order, grading_note, condition, owned FROM cards WHERE list_id = %s ORDER BY card_order ASC", (list_id,))
     cards = cur.fetchall()
     cur.close()
     conn.close()
@@ -55,6 +55,18 @@ def swap_card_order(card1_id, card1_order, card2_id, card2_order):
     except Exception as e:
         st.error(f"Erro ao reordenar: {e}")
 
+def toggle_owned_status(card_id, current_status):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE cards SET owned = %s WHERE id = %s", (not current_status, card_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        st.rerun()
+    except Exception as e:
+        st.error(f"Erro ao atualizar status: {e}")
+
 # --- Título da Página ---
 st.title(f"Cards da Lista: {list_name}")
 st.page_link("app.py", label="Voltar para todas as listas", icon="⬅️")
@@ -71,7 +83,7 @@ if not cards:
     st.info("Nenhum card nesta lista ainda. Adicione um abaixo.")
 else:
     for i, card in enumerate(cards):
-        card_id, name, photo_url, number, total, lang, order = card
+        card_id, name, photo_url, number, total, lang, order, grading_note, condition, owned = card
         
         col1, col2 = st.columns([0.5, 3.5])
         with col1:
@@ -83,6 +95,15 @@ else:
             st.subheader(name)
             st.write(f"**Número:** {number}/{total}")
             st.write(f"**Linguagem:** {lang}")
+            st.write(f"**Condição:** {condition}")
+            if grading_note:
+                st.write(f"**Nota:** {grading_note}")
+
+            status_text = "Na coleção" if owned else "Desejo"
+            st.write(f"**Status:** {status_text}")
+
+            if st.button("Mudar Status", key=f"toggle_{card_id}"):
+                toggle_owned_status(card_id, owned)
             
             # Botões de Reordenação
             reorder_col1, reorder_col2, reorder_col3 = st.columns(3)
@@ -98,16 +119,24 @@ else:
                         swap_card_order(card_id, order, next_card[0], next_card[6])
         st.markdown("---")
 
-# --- Formulário para Adicionar Novo Card ---
+# --- Formulário para Adicionar Novo Card à Lista ---
 with st.expander("Adicionar Novo Card à Lista"):
     with st.form(key="add_card_form", clear_on_submit=True):
         card_name = st.text_input("Nome do Card")
         uploaded_file = st.file_uploader("Foto do Card", type=["png", "jpg", "jpeg"])
+        
         c1, c2 = st.columns(2)
         card_number = c1.number_input("Número do Card", min_value=1, step=1)
         collection_total = c2.number_input("Total da Coleção", min_value=1, step=1)
-        language = st.selectbox("Linguagem", options=LANGUAGES)
         
+        c3, c4 = st.columns(2)
+        language = c3.selectbox("Linguagem", options=LANGUAGES)
+        condition = c4.selectbox("Condição", options=['NM', 'SP', 'MP', 'HP', 'D'])
+        
+        grading_note = st.number_input("Nota da Graduação (Opcional)", min_value=1, max_value=10, step=1, value=None)
+        
+        owned = st.checkbox("Tenho este card", value=True)
+
         submitted = st.form_submit_button("Adicionar Card")
         if submitted:
             if uploaded_file and card_name and card_number and collection_total:
@@ -119,8 +148,8 @@ with st.expander("Adicionar Novo Card à Lista"):
                     cur = conn.cursor()
                     # Insere o card com a próxima ordem disponível
                     cur.execute(
-                        "INSERT INTO cards (name, photo_url, card_number, collection_total, language, list_id, card_order) VALUES (%s, %s, %s, %s, %s, %s, (SELECT COALESCE(MAX(card_order), 0) + 1 FROM cards WHERE list_id = %s))",
-                        (card_name, photo_url, card_number, collection_total, language, list_id, list_id)
+                        "INSERT INTO cards (name, photo_url, card_number, collection_total, language, list_id, card_order, condition, grading_note, owned) VALUES (%s, %s, %s, %s, %s, %s, (SELECT COALESCE(MAX(card_order), 0) + 1 FROM cards WHERE list_id = %s), %s, %s, %s)",
+                        (card_name, photo_url, card_number, collection_total, language, list_id, list_id, condition, grading_note, owned)
                     )
                     conn.commit()
                     cur.close()

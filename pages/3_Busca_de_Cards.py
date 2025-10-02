@@ -27,7 +27,7 @@ if search_term:
         
         # A busca será case-insensitive com o uso de ILIKE
         query = """
-            SELECT c.name, c.photo_url, c.card_number, c.collection_total, c.language, l.name, c.id
+            SELECT c.name, c.photo_url, c.card_number, c.collection_total, c.language, l.name, c.id, c.grading_note, c.condition, c.owned
             FROM cards c
             JOIN lists l ON c.list_id = l.id
             WHERE c.name ILIKE %s
@@ -46,7 +46,7 @@ if search_term:
             st.success(f'{len(results)} card(s) encontrado(s) com o nome "{search_term}":')
             
             for card in results:
-                card_name, photo_url, number, total, lang, list_name, card_id = card
+                card_name, photo_url, number, total, lang, list_name, card_id, grading_note, condition, owned = card
                 
                 st.divider()
                 col1, col2 = st.columns([0.5, 3.5])
@@ -61,6 +61,11 @@ if search_term:
                     st.write(f"**Lista:** {list_name}")
                     st.write(f"**Número:** {number}/{total}")
                     st.write(f"**Linguagem:** {lang}")
+                    st.write(f"**Condição:** {condition}")
+                    if grading_note:
+                        st.write(f"**Nota:** {grading_note}")
+                    status_text = "Na coleção" if owned else "Desejo"
+                    st.write(f"**Status:** {status_text}")
 
     except Exception as e:
         st.error(f"Erro ao buscar os cards: {e}")
