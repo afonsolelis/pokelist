@@ -130,7 +130,7 @@ with st.expander("Adicionar Novo Card à Lista"):
         
         c1, c2 = st.columns(2)
         card_number = c1.text_input("Número do Card")
-        collection_total = c2.number_input("Total da Coleção (Opcional)", min_value=1, step=1, value=None)
+        collection_total = c2.text_input("Total da Coleção (Opcional)")
         
         c3, c4 = st.columns(2)
         language = c3.selectbox("Linguagem", options=LANGUAGES)
