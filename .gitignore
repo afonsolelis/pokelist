@@ -1,0 +1,19 @@
+# Arquivos de ambiente
+.env
+
+# Dependências e caches do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Diretórios de ambiente virtual
+venv/
+env/
+.venv/
+
+# Arquivos de sistema operacional
+.DS_Store
+
+# Configurações do Streamlit
+.streamlit/
