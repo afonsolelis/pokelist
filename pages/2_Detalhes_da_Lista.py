@@ -63,6 +63,10 @@ st.divider()
 # --- Exibição dos Cards ---
 cards = get_cards_for_list(list_id)
 
+@st.dialog("Imagem do Card")
+def show_card_image(image_url, card_name):
+    st.image(image_url, caption=card_name)
+
 if not cards:
     st.info("Nenhum card nesta lista ainda. Adicione um abaixo.")
 else:
@@ -72,6 +76,8 @@ else:
         col1, col2 = st.columns([0.5, 3.5])
         with col1:
             st.image(photo_url, use_container_width=True)
+            if st.button("🔍 Ampliar", key=f"zoom_{card_id}"):
+                show_card_image(photo_url, name)
         
         with col2:
             st.subheader(name)
