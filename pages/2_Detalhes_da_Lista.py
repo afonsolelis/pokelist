@@ -67,6 +67,21 @@ def toggle_owned_status(card_id, current_status):
     except Exception as e:
         st.error(f"Erro ao atualizar status: {e}")
 
+def update_card(card_id, name, card_number, collection_total, language, condition, grading_note, owned):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE cards SET name = %s, card_number = %s, collection_total = %s, language = %s, condition = %s, grading_note = %s, owned = %s WHERE id = %s",
+            (name, card_number, collection_total, language, condition, grading_note, owned, card_id)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        st.success("Card atualizado com sucesso!")
+    except Exception as e:
+        st.error(f"Erro ao atualizar: {e}")
+
 # --- Título da Página ---
 st.title(f"Cards da Lista: {list_name}")
 st.page_link("app.py", label="Voltar para todas as listas", icon="⬅️")
@@ -78,6 +93,31 @@ cards = get_cards_for_list(list_id)
 @st.dialog("Imagem do Card")
 def show_card_image(image_url, card_name):
     st.image(image_url, caption=card_name)
+
+@st.dialog("Editar Card")
+def edit_card_dialog(card_data):
+    card_id, name, _, number, total, lang, _, grading_note, condition, owned = card_data
+    
+    with st.form(key=f"edit_form_{card_id}"):
+        st.write("Atenção: a imagem do card não pode ser alterada.")
+        
+        new_name = st.text_input("Nome do Card", value=name)
+        
+        c1, c2 = st.columns(2)
+        new_card_number = c1.text_input("Número do Card", value=number)
+        new_collection_total = c2.text_input("Total da Coleção (Opcional)", value=total)
+        
+        c3, c4 = st.columns(2)
+        new_language = c3.selectbox("Linguagem", options=LANGUAGES, index=LANGUAGES.index(lang) if lang in LANGUAGES else 0)
+        new_condition = c4.selectbox("Condição", options=['NM', 'SP', 'MP', 'HP', 'D'], index=['NM', 'SP', 'MP', 'HP', 'D'].index(condition))
+        
+        new_grading_note = st.number_input("Nota da Graduação (Opcional)", min_value=1, max_value=10, step=1, value=grading_note)
+        
+        new_owned = st.checkbox("Tenho este card", value=owned)
+
+        if st.form_submit_button("Salvar Alterações"):
+            update_card(card_id, new_name, new_card_number, new_collection_total, new_language, new_condition, new_grading_note, new_owned)
+            st.rerun()
 
 if not cards:
     st.info("Nenhum card nesta lista ainda. Adicione um abaixo.")
@@ -105,8 +145,13 @@ else:
             status_text = "Na coleção" if owned else "Desejo"
             st.write(f"**Status:** {status_text}")
 
-            if st.button("Mudar Status", key=f"toggle_{card_id}"):
-                toggle_owned_status(card_id, owned)
+            action_col1, action_col2 = st.columns(2)
+            with action_col1:
+                if st.button("Mudar Status", key=f"toggle_{card_id}"):
+                    toggle_owned_status(card_id, owned)
+            with action_col2:
+                if st.button("Editar", key=f"edit_{card_id}"):
+                    edit_card_dialog(card)
             
             # Botões de Reordenação
             reorder_col1, reorder_col2, reorder_col3 = st.columns(3)
