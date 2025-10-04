@@ -109,7 +109,11 @@ def edit_card_dialog(card_data):
         
         c3, c4 = st.columns(2)
         new_language = c3.selectbox("Linguagem", options=LANGUAGES, index=LANGUAGES.index(lang) if lang in LANGUAGES else 0)
-        new_condition = c4.selectbox("Condição", options=['NM', 'SP', 'MP', 'HP', 'D'], index=['NM', 'SP', 'MP', 'HP', 'D'].index(condition))
+        new_condition = c4.selectbox(
+            "Condição",
+            options=['GM', 'M', 'NM', 'SP', 'MP', 'HP', 'D'],
+            index=['GM', 'M', 'NM', 'SP', 'MP', 'HP', 'D'].index(condition)
+        )
         
         new_grading_note = st.number_input("Nota da Graduação (Opcional)", min_value=1, max_value=10, step=1, value=grading_note)
         
@@ -179,7 +183,7 @@ with st.expander("Adicionar Novo Card à Lista"):
         
         c3, c4 = st.columns(2)
         language = c3.selectbox("Linguagem", options=LANGUAGES)
-        condition = c4.selectbox("Condição", options=['NM', 'SP', 'MP', 'HP', 'D'])
+        condition = c4.selectbox("Condição", options=['GM', 'M', 'NM', 'SP', 'MP', 'HP', 'D'])
         
         grading_note = st.number_input("Nota da Graduação (Opcional)", min_value=1, max_value=10, step=1, value=None)
         

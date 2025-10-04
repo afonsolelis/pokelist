@@ -46,6 +46,8 @@ Este é um aplicativo web construído com Streamlit para ajudar colecionadores d
 
 Antes de iniciar o aplicativo, você precisa criar as tabelas no seu banco de dados PostgreSQL. Execute o script SQL encontrado em `scripts/migration.sql`.
 
+Se você já possui o banco criado, aplique também, em ordem, os arquivos `scripts/migration_2.sql`, `scripts/migration_3.sql`, `scripts/migration_4.sql`, `scripts/migration_5.sql` e `scripts/migration_6.sql` para atualizar o esquema (inclui novas condições de cards como GM e M).
+
 ## Como Executar
 
 Com o ambiente configurado e o banco de dados migrado, inicie o aplicativo com o seguinte comando:
