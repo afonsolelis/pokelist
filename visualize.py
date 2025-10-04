@@ -115,7 +115,11 @@ def show_lists_view():
 def show_list_detail_view(list_id: int, list_name: str):
     st.title(f"{list_name}")
     st.caption("Visualização somente-leitura.")
-    st.button("⬅️ Voltar", on_click=lambda: [st.session_state.pop("visualize_selected_list_id", None), st.session_state.pop("visualize_selected_list_name", None), st.rerun()])
+    # Evita st.rerun dentro de callback; usa fluxo normal do botão
+    if st.button("⬅️ Voltar"):
+        st.session_state.pop("visualize_selected_list_id", None)
+        st.session_state.pop("visualize_selected_list_name", None)
+        st.rerun()
 
     cards = get_cards_for_list(list_id)
     if not cards:
@@ -138,34 +142,31 @@ def show_list_detail_view(list_id: int, list_name: str):
             card = cards[i + idx]
             card_id, name, photo_url, number, total, lang, order, grading_note, condition, owned = card
             with col:
+                # Renderiza tudo dentro de um único bloco HTML para manter a imagem
+                # e textos dentro do "cartão" com o CSS aplicado
+                meta_parts = []
+                if number:
+                    meta_parts.append(f"# {number}{'/' + str(total) if total else ''}")
+                if lang:
+                    meta_parts.append(lang)
+                pills = []
+                if condition:
+                    pills.append(f"<span class='pill'>Cond.: {condition}</span>")
+                if grading_note:
+                    pills.append(f"<span class='pill'>Nota: {grading_note}</span>")
+                if owned is not None:
+                    pills.append(f"<span class='pill'>{'Na coleção' if owned else 'Desejo'}</span>")
+
+                html = f"""
+                <div class='poke-card'>
+                  <img src="{photo_url}" alt="{name}" />
+                  <div class='name'>{name}</div>
+                  <div class='meta'>{' • '.join(meta_parts)}</div>
+                  {' '.join(pills)}
+                </div>
+                """
                 with st.container(border=True):
-                    st.markdown("<div class='poke-card'>", unsafe_allow_html=True)
-                    st.image(photo_url, use_container_width=True)
-                    st.markdown(f"<div class='name'>{name}</div>", unsafe_allow_html=True)
-
-                    # Metadados em linha
-                    meta_parts = []
-                    if number:
-                        meta_parts.append(f"# {number}{'/' + str(total) if total else ''}")
-                    if lang:
-                        meta_parts.append(lang)
-                    st.markdown(
-                        f"<div class='meta'>{' • '.join(meta_parts)}</div>",
-                        unsafe_allow_html=True,
-                    )
-
-                    # Pills
-                    pills = []
-                    if condition:
-                        pills.append(f"<span class='pill'>Cond.: {condition}</span>")
-                    if grading_note:
-                        pills.append(f"<span class='pill'>Nota: {grading_note}</span>")
-                    if owned is not None:
-                        pills.append(f"<span class='pill'>{'Na coleção' if owned else 'Desejo'}</span>")
-                    if pills:
-                        st.markdown(" ".join(pills), unsafe_allow_html=True)
-
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    st.markdown(html, unsafe_allow_html=True)
 
 
 # --- Roteamento simples por sessão ---
@@ -176,4 +177,3 @@ if selected_id and selected_name:
     show_list_detail_view(selected_id, selected_name)
 else:
     show_lists_view()
-
