@@ -7,6 +7,7 @@ import cloudinary.uploader
 
 # --- Configuração e Funções de DB ---
 load_dotenv()
+st.set_page_config(layout="wide")
 
 def get_db_connection():
     return psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -25,7 +26,8 @@ LANGUAGES = [
 # --- Verificação de Estado ---
 if 'current_list_id' not in st.session_state:
     st.error("Nenhuma lista selecionada!")
-    st.page_link("app.py", label="Voltar para o Gerenciador de Listas", icon="🏠")
+    # Em deploy com visualize.py como entrypoint, a página inicial é visualize.py
+    st.page_link("visualize.py", label="Voltar para a Visualização", icon="🏠")
     st.stop()
 
 list_id = st.session_state['current_list_id']
@@ -84,7 +86,7 @@ def update_card(card_id, name, card_number, collection_total, language, conditio
 
 # --- Título da Página ---
 st.title(f"Cards da Lista: {list_name}")
-st.page_link("app.py", label="Voltar para todas as listas", icon="⬅️")
+st.page_link("visualize.py", label="Voltar para todas as listas", icon="⬅️")
 st.divider()
 
 # --- Exibição dos Cards ---
@@ -92,7 +94,7 @@ cards = get_cards_for_list(list_id)
 
 @st.dialog("Imagem do Card")
 def show_card_image(image_url, card_name):
-    st.image(image_url, caption=card_name)
+    st.image(image_url, caption=card_name, width="stretch")
 
 @st.dialog("Editar Card")
 def edit_card_dialog(card_data):
@@ -131,7 +133,7 @@ else:
         
         col1, col2 = st.columns([0.5, 3.5])
         with col1:
-            st.image(photo_url, use_container_width=True)
+            st.image(photo_url, width="stretch")
             if st.button("🔍 Ampliar", key=f"zoom_{card_id}"):
                 show_card_image(photo_url, name)
         

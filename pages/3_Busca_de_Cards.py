@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 # --- Configuração Inicial e Funções de DB ---
 load_dotenv()
+st.set_page_config(layout="wide")
 
 def get_db_connection():
     return psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -19,7 +20,7 @@ search_term = st.text_input("Digite o nome do card que você está procurando:",
 if search_term:
     @st.dialog("Imagem do Card")
     def show_card_image(image_url, card_name):
-        st.image(image_url, caption=card_name)
+        st.image(image_url, caption=card_name, width="stretch")
 
     try:
         conn = get_db_connection()
@@ -52,7 +53,7 @@ if search_term:
                 col1, col2 = st.columns([0.5, 3.5])
                 
                 with col1:
-                    st.image(photo_url, use_container_width=True)
+                    st.image(photo_url, width="stretch")
                     if st.button("🔍 Ampliar", key=f"zoom_{card_id}"):
                         show_card_image(photo_url, card_name)
                 

@@ -202,7 +202,7 @@ def show_list_detail_view(list_id: int, list_name: str):
             with col:
                 with st.container(border=True):
                     img_url = _normalize_cloudinary(photo_url, width=900, height=1200)
-                    st.image(img_url, use_container_width=True)
+                    st.image(img_url, width="stretch")
                     st.write(f"**{name}**")
                     meta = []
                     if number:
@@ -292,7 +292,7 @@ with tab_busca:
                     with col:
                         with st.container(border=True):
                             img_url = _normalize_cloudinary(photo_url, width=900, height=1200)
-                            st.image(img_url, use_container_width=True)
+                            st.image(img_url, width="stretch")
                             st.write(f"**{card_name}**")
                             st.caption(f"Lista: {list_name}")
                             meta = []
