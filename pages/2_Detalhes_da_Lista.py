@@ -134,7 +134,7 @@ else:
         # Deixa a coluna da imagem mais larga para telas menores
         col1, col2 = st.columns([1, 2])
         with col1:
-            st.image(photo_url, width="stretch")
+            st.image(photo_url, width=360)
             if st.button("🔍 Ampliar", key=f"zoom_{card_id}"):
                 show_card_image(photo_url, name)
         

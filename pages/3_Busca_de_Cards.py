@@ -53,7 +53,8 @@ if search_term:
                 col1, col2 = st.columns([0.5, 3.5])
                 
                 with col1:
-                    st.image(photo_url, width="stretch")
+                    # Usa largura em pixels para evitar miniaturas no Cloud
+                    st.image(photo_url, width=340)
                     if st.button("🔍 Ampliar", key=f"zoom_{card_id}"):
                         show_card_image(photo_url, card_name)
                 
