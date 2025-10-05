@@ -3,19 +3,17 @@ import psycopg2
 import streamlit as st
 from dotenv import load_dotenv
 
-# Visualização somente-leitura das listas e cards
+# Visualização somente-leitura das listas e cards (100% Streamlit)
 
 load_dotenv()
-st.set_page_config(page_title="Pokélist - Visualização", layout="wide")
+st.set_page_config(page_title="Pokélist - Visualização", layout="wide", initial_sidebar_state="collapsed")
 
 
 def get_db_connection_readonly():
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    # Garante transações somente-leitura e sem commits
     try:
         conn.set_session(readonly=True, autocommit=True)
     except Exception:
-        # Fallback para garantir o modo somente-leitura via comando SQL
         with conn.cursor() as cur:
             cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY")
     return conn
@@ -57,28 +55,99 @@ def get_cards_for_list(list_id: int):
     conn.close()
     return rows
 
+def get_all_languages():
+    try:
+        conn = get_db_connection_readonly()
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT language FROM cards WHERE language IS NOT NULL AND language <> '' ORDER BY language ASC")
+        langs = [r[0] for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return langs
+    except Exception:
+        return []
 
-# --- Estilos ---
+def search_cards(name_term: str | None, language: str | None, status: str | None, condition: str | None, min_note: int | None, max_note: int | None, sort: str = "name"):
+    # Retorna: name, photo_url, number, total, lang, list_name, card_id, grading_note, condition, owned
+    sql = [
+        """
+        SELECT c.name, c.photo_url, c.card_number, c.collection_total, c.language,
+               l.name as list_name, c.id, c.grading_note, c.condition, c.owned
+        FROM cards c
+        JOIN lists l ON c.list_id = l.id
+        WHERE 1=1
+        """
+    ]
+    params: list = []
+    if name_term:
+        sql.append("AND c.name ILIKE %s")
+        params.append(f"%{name_term}%")
+    if language:
+        sql.append("AND c.language = %s")
+        params.append(language)
+    if status == "owned":
+        sql.append("AND c.owned = TRUE")
+    elif status == "wish":
+        sql.append("AND (c.owned = FALSE OR c.owned IS NULL)")
+    if condition:
+        sql.append("AND c.condition = %s")
+        params.append(condition)
+    if min_note is not None:
+        sql.append("AND c.grading_note >= %s")
+        params.append(min_note)
+    if max_note is not None:
+        sql.append("AND c.grading_note <= %s")
+        params.append(max_note)
+
+    order = "l.name, c.name"
+    if sort == "grade_desc":
+        order = "c.grading_note DESC NULLS LAST, l.name, c.name"
+    elif sort == "name":
+        order = "l.name, c.name"
+    elif sort == "number":
+        order = "l.name, c.card_number, c.name"
+
+    sql.append(f"ORDER BY {order}")
+
+    try:
+        conn = get_db_connection_readonly()
+        cur = conn.cursor()
+        cur.execute("\n".join(sql), tuple(params))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return rows
+    except Exception as e:
+        st.error(f"Erro na busca: {e}")
+        return []
+
+
+# Esconde a navegação padrão da pasta pages
 st.markdown(
     """
     <style>
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-    .list-card, .poke-card {
-        border-radius: 12px; border: 1px solid #e6e6e6; padding: 14px; background: #fff;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-    }
-    .list-card:hover, .poke-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-    .list-title { font-weight: 600; font-size: 1rem; margin: 6px 0 2px; }
-    .list-sub { color: #666; font-size: 0.9rem; }
-    .poke-card img { width: 100%; height: auto; border-radius: 8px; }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; background: #f1f5f9; color: #0f172a; margin-right: 6px; }
-    .meta { color: #475569; font-size: 0.9rem; }
-    .name { font-weight: 700; margin: 8px 0 4px; font-size: 1.05rem; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    [data-testid="stSidebarNav"] { display: none !important; }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+
+def _normalize_cloudinary(url: str, width: int = 900, height: int | None = 1200) -> str:
+    if not url or "res.cloudinary.com" not in url or "/image/upload" not in url:
+        return url
+    try:
+        before, after = url.split("/image/upload/", 1)
+        first_segment = after.split("/", 1)[0]
+        if any(token in first_segment for token in ("w_", "h_", "c_", "q_", "f_", "ar_")):
+            return url
+        if height is None:
+            transform = f"f_auto,q_auto,c_limit,w_{width}"
+        else:
+            transform = f"f_auto,q_auto,c_pad,b_white,w_{width},h_{height}"
+        return f"{before}/image/upload/{transform}/{after}"
+    except Exception:
+        return url
 
 
 def show_lists_view():
@@ -99,13 +168,8 @@ def show_lists_view():
             list_id, list_name, total_cards = lists[i + idx]
             with col:
                 with st.container(border=True):
-                    st.markdown(
-                        f"<div class='list-card'>"
-                        f"<div class='list-title'>{list_name}</div>"
-                        f"<div class='list-sub'>{total_cards} card(s)</div>"
-                        f"</div>",
-                        unsafe_allow_html=True,
-                    )
+                    st.subheader(list_name)
+                    st.caption(f"{total_cards} card(s)")
                     if st.button("Abrir", key=f"open_list_{list_id}"):
                         st.session_state["visualize_selected_list_id"] = list_id
                         st.session_state["visualize_selected_list_name"] = list_name
@@ -115,7 +179,7 @@ def show_lists_view():
 def show_list_detail_view(list_id: int, list_name: str):
     st.title(f"{list_name}")
     st.caption("Visualização somente-leitura.")
-    # Evita st.rerun dentro de callback; usa fluxo normal do botão
+
     if st.button("⬅️ Voltar"):
         st.session_state.pop("visualize_selected_list_id", None)
         st.session_state.pop("visualize_selected_list_name", None)
@@ -126,54 +190,145 @@ def show_list_detail_view(list_id: int, list_name: str):
         st.info("Esta lista não possui cards.")
         return
 
-    # Barra superior com contagem
-    st.markdown(
-        f"<div class='topbar'><div class='meta'>Total: {len(cards)} cards</div></div>",
-        unsafe_allow_html=True,
-    )
+    st.write(f"Total: {len(cards)} cards")
 
-    # Grade de cards
-    cols_per_row = 3
+    cols_per_row = 4
     for i in range(0, len(cards), cols_per_row):
         cols = st.columns(cols_per_row)
         for idx, col in enumerate(cols):
             if i + idx >= len(cards):
                 break
-            card = cards[i + idx]
-            card_id, name, photo_url, number, total, lang, order, grading_note, condition, owned = card
+            card_id, name, photo_url, number, total, lang, order, grading_note, condition, owned = cards[i + idx]
             with col:
-                # Renderiza tudo dentro de um único bloco HTML para manter a imagem
-                # e textos dentro do "cartão" com o CSS aplicado
-                meta_parts = []
-                if number:
-                    meta_parts.append(f"# {number}{'/' + str(total) if total else ''}")
-                if lang:
-                    meta_parts.append(lang)
-                pills = []
-                if condition:
-                    pills.append(f"<span class='pill'>Cond.: {condition}</span>")
-                if grading_note:
-                    pills.append(f"<span class='pill'>Nota: {grading_note}</span>")
-                if owned is not None:
-                    pills.append(f"<span class='pill'>{'Na coleção' if owned else 'Desejo'}</span>")
-
-                html = f"""
-                <div class='poke-card'>
-                  <img src="{photo_url}" alt="{name}" />
-                  <div class='name'>{name}</div>
-                  <div class='meta'>{' • '.join(meta_parts)}</div>
-                  {' '.join(pills)}
-                </div>
-                """
                 with st.container(border=True):
-                    st.markdown(html, unsafe_allow_html=True)
+                    img_url = _normalize_cloudinary(photo_url, width=900, height=1200)
+                    st.image(img_url, use_container_width=True)
+                    st.write(f"**{name}**")
+                    meta = []
+                    if number:
+                        meta.append(f"# {number}{'/' + str(total) if total else ''}")
+                    if lang:
+                        meta.append(lang)
+                    if meta:
+                        st.markdown(
+                            f"<div style='font-size:0.80rem;color:#475569;'>{' • '.join(meta)}</div>",
+                            unsafe_allow_html=True,
+                        )
+                    info = []
+                    if condition:
+                        info.append(f"Cond.: {condition}")
+                    if grading_note:
+                        info.append(f"Nota: {grading_note}")
+                    if owned is not None:
+                        info.append('Na coleção' if owned else 'Desejo')
+                    if info:
+                        st.markdown(
+                            f"<div style='font-size:0.78rem;color:#5b6778;'>" + " | ".join(info) + "</div>",
+                            unsafe_allow_html=True,
+                        )
 
 
 # --- Roteamento simples por sessão ---
-selected_id = st.session_state.get("visualize_selected_list_id")
-selected_name = st.session_state.get("visualize_selected_list_name")
+tab_listas, tab_busca = st.tabs(["Listas", "Buscar"])
 
-if selected_id and selected_name:
-    show_list_detail_view(selected_id, selected_name)
-else:
-    show_lists_view()
+with tab_listas:
+    selected_id = st.session_state.get("visualize_selected_list_id")
+    selected_name = st.session_state.get("visualize_selected_list_name")
+    if selected_id and selected_name:
+        show_list_detail_view(selected_id, selected_name)
+    else:
+        show_lists_view()
+
+with tab_busca:
+    st.title("Busca de Cards")
+    st.caption("Filtre por nome, língua, condição, status e nota.")
+
+    with st.form("search_form", clear_on_submit=False):
+        name_term = st.text_input("Nome contém", "")
+        cols = st.columns(3)
+        with cols[0]:
+            langs = [""] + get_all_languages()
+            language = st.selectbox("Língua", options=langs, format_func=lambda v: v if v else "Todas")
+        with cols[1]:
+            status_map = {"Todos": "", "Na coleção": "owned", "Desejo": "wish"}
+            status_label = st.selectbox("Status", options=list(status_map.keys()))
+            status = status_map[status_label]
+        with cols[2]:
+            condition = st.selectbox("Condição", options=["", "GM", "M", "NM", "SP", "MP", "HP", "D"], format_func=lambda v: v if v else "Todas")
+
+        cols2 = st.columns(3)
+        with cols2[0]:
+            sort_label = st.selectbox("Ordenar por", options=["Nome", "Número", "Nota (desc)"])
+            sort = {"Nome": "name", "Número": "number", "Nota (desc)": "grade_desc"}[sort_label]
+        with cols2[1]:
+            min_note = st.number_input("Nota mínima", min_value=1, max_value=10, value=1)
+        with cols2[2]:
+            max_note = st.number_input("Nota máxima", min_value=1, max_value=10, value=10)
+
+        submitted = st.form_submit_button("Buscar")
+
+    if submitted:
+        results = search_cards(
+            name_term=name_term or None,
+            language=language or None,
+            status=status or None,
+            condition=condition or None,
+            min_note=min_note if min_note else None,
+            max_note=max_note if max_note else None,
+            sort=sort,
+        )
+
+        if not results:
+            st.info("Nenhum card encontrado com os filtros informados.")
+        else:
+            st.success(f"{len(results)} card(s) encontrado(s)")
+            cols_per_row = 4
+            for i in range(0, len(results), cols_per_row):
+                cols = st.columns(cols_per_row)
+                for idx, col in enumerate(cols):
+                    if i + idx >= len(results):
+                        break
+                    card_name, photo_url, number, total, lang, list_name, card_id, grading_note, condition, owned = results[i + idx]
+                    with col:
+                        with st.container(border=True):
+                            img_url = _normalize_cloudinary(photo_url, width=900, height=1200)
+                            st.image(img_url, use_container_width=True)
+                            st.write(f"**{card_name}**")
+                            st.caption(f"Lista: {list_name}")
+                            meta = []
+                            if number:
+                                meta.append(f"# {number}{'/' + str(total) if total else ''}")
+                            if lang:
+                                meta.append(lang)
+                            if meta:
+                                st.markdown(
+                                    f"<div style='font-size:0.80rem;color:#475569;'>{' • '.join(meta)}</div>",
+                                    unsafe_allow_html=True,
+                                )
+                            info = []
+                            if condition:
+                                info.append(f"Cond.: {condition}")
+                            if grading_note:
+                                info.append(f"Nota: {grading_note}")
+                            if owned is not None:
+                                info.append('Na coleção' if owned else 'Desejo')
+                            if info:
+                                st.markdown(
+                                    f"<div style='font-size:0.78rem;color:#5b6778;'>" + " | ".join(info) + "</div>",
+                                    unsafe_allow_html=True,
+                                )
+                            if st.button("Abrir lista", key=f"go_{card_id}"):
+                                # Buscar o ID da lista e navegar para a aba de Listas > Detalhe
+                                try:
+                                    conn = get_db_connection_readonly()
+                                    cur = conn.cursor()
+                                    cur.execute("SELECT id FROM lists WHERE name = %s LIMIT 1", (list_name,))
+                                    row = cur.fetchone()
+                                    cur.close()
+                                    conn.close()
+                                    if row:
+                                        st.session_state["visualize_selected_list_id"] = row[0]
+                                        st.session_state["visualize_selected_list_name"] = list_name
+                                        st.rerun()
+                                except Exception:
+                                    st.warning("Não foi possível abrir a lista.")
