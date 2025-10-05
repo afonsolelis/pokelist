@@ -38,8 +38,8 @@ LANGUAGES = [
 # --- Verificação de Estado ---
 if 'current_list_id' not in st.session_state:
     st.error("Nenhuma lista selecionada!")
-    # Em deploy com visualize.py como entrypoint, a página inicial é visualize.py
-    st.page_link("visualize.py", label="Voltar para a Visualização", icon="🏠")
+    # Em deploy com app.py como entrypoint, a página inicial é app.py
+    st.page_link("app.py", label="Voltar para a Visualização", icon="🏠")
     st.stop()
 
 list_id = st.session_state['current_list_id']
@@ -98,7 +98,8 @@ def update_card(card_id, name, card_number, collection_total, language, conditio
 
 # --- Título da Página ---
 st.title(f"Cards da Lista: {list_name}")
-st.page_link("visualize.py", label="Voltar para todas as listas", icon="⬅️")
+# Voltar para a página principal de gerenciamento (app.py)
+st.page_link("app.py", label="Voltar para todas as listas", icon="⬅️")
 st.divider()
 
 # --- Exibição dos Cards ---
