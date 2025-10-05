@@ -131,7 +131,8 @@ else:
     for i, card in enumerate(cards):
         card_id, name, photo_url, number, total, lang, order, grading_note, condition, owned = card
         
-        col1, col2 = st.columns([0.5, 3.5])
+        # Deixa a coluna da imagem mais larga para telas menores
+        col1, col2 = st.columns([1, 2])
         with col1:
             st.image(photo_url, width="stretch")
             if st.button("🔍 Ampliar", key=f"zoom_{card_id}"):

@@ -159,7 +159,7 @@ def show_lists_view():
         st.info("Nenhuma lista encontrada.")
         return
 
-    cols_per_row = 4
+    cols_per_row = 3
     for i in range(0, len(lists), cols_per_row):
         cols = st.columns(cols_per_row)
         for idx, col in enumerate(cols):
@@ -192,7 +192,7 @@ def show_list_detail_view(list_id: int, list_name: str):
 
     st.write(f"Total: {len(cards)} cards")
 
-    cols_per_row = 4
+    cols_per_row = 3
     for i in range(0, len(cards), cols_per_row):
         cols = st.columns(cols_per_row)
         for idx, col in enumerate(cols):
@@ -282,7 +282,7 @@ with tab_busca:
             st.info("Nenhum card encontrado com os filtros informados.")
         else:
             st.success(f"{len(results)} card(s) encontrado(s)")
-            cols_per_row = 4
+            cols_per_row = 3
             for i in range(0, len(results), cols_per_row):
                 cols = st.columns(cols_per_row)
                 for idx, col in enumerate(cols):
