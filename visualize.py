@@ -132,6 +132,19 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown(
+    """
+    <style>
+    @media (max-width: 900px) {
+        div[data-testid="column"] { width: 100% !important; flex: 1 0 100% !important; min-width: 0 !important; }
+        div[data-testid="stHorizontalBlock"] { gap: 0.5rem !important; }
+        .block-container { padding-left: 0.75rem; padding-right: 0.75rem; }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 def _normalize_cloudinary(url: str, width: int = 900, height: int | None = 1200) -> str:
     if not url or "res.cloudinary.com" not in url or "/image/upload" not in url:
@@ -153,20 +166,13 @@ def _normalize_cloudinary(url: str, width: int = 900, height: int | None = 1200)
 def show_lists_view():
     st.title("Listas Públicas")
     st.caption("Selecione uma lista para visualizar os cards.")
-    cols_opts = [2, 3, 4]
-    st.session_state['viz_cols_per_row'] = st.select_slider(
-        "Cards por linha",
-        options=cols_opts,
-        value=st.session_state.get('viz_cols_per_row', 3),
-        help="Ajuste se os cards parecerem pequenos no seu dispositivo.",
-    )
 
     lists = get_lists_with_counts()
     if not lists:
         st.info("Nenhuma lista encontrada.")
         return
 
-    cols_per_row = st.session_state.get('viz_cols_per_row', 3)
+    cols_per_row = 4
     for i in range(0, len(lists), cols_per_row):
         cols = st.columns(cols_per_row)
         for idx, col in enumerate(cols):
@@ -198,14 +204,7 @@ def show_list_detail_view(list_id: int, list_name: str):
         return
 
     st.write(f"Total: {len(cards)} cards")
-    cols_opts = [2, 3, 4]
-    st.session_state['viz_cols_per_row'] = st.select_slider(
-        "Cards por linha",
-        options=cols_opts,
-        value=st.session_state.get('viz_cols_per_row', 3),
-    )
-
-    cols_per_row = st.session_state.get('viz_cols_per_row', 3)
+    cols_per_row = 4
     for i in range(0, len(cards), cols_per_row):
         cols = st.columns(cols_per_row)
         for idx, col in enumerate(cols):
@@ -216,7 +215,7 @@ def show_list_detail_view(list_id: int, list_name: str):
                 with st.container(border=True):
                     img_url = _normalize_cloudinary(photo_url, width=900, height=1200)
                     # width em pixels para evitar miniaturas no Streamlit Cloud
-                    per_row = st.session_state.get('viz_cols_per_row', 3)
+                    per_row = 4
                     target_w = 420 if per_row <= 2 else (340 if per_row == 3 else 260)
                     st.image(img_url, width=target_w)
                     st.write(f"**{name}**")
@@ -298,7 +297,7 @@ with tab_busca:
             st.info("Nenhum card encontrado com os filtros informados.")
         else:
             st.success(f"{len(results)} card(s) encontrado(s)")
-            cols_per_row = st.session_state.get('viz_cols_per_row', 3)
+            cols_per_row = 4
             for i in range(0, len(results), cols_per_row):
                 cols = st.columns(cols_per_row)
                 for idx, col in enumerate(cols):
@@ -308,7 +307,7 @@ with tab_busca:
                     with col:
                         with st.container(border=True):
                             img_url = _normalize_cloudinary(photo_url, width=900, height=1200)
-                            per_row = st.session_state.get('viz_cols_per_row', 3)
+                            per_row = 4
                             target_w = 420 if per_row <= 2 else (340 if per_row == 3 else 260)
                             st.image(img_url, width=target_w)
                             st.write(f"**{card_name}**")

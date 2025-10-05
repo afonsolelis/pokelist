@@ -8,6 +8,18 @@ import cloudinary.uploader
 # --- Configuração e Funções de DB ---
 load_dotenv()
 st.set_page_config(layout="wide")
+st.markdown(
+    """
+    <style>
+    @media (max-width: 900px) {
+        div[data-testid=\"column\"] { width: 100% !important; flex: 1 0 100% !important; min-width: 0 !important; }
+        div[data-testid=\"stHorizontalBlock\"] { gap: 0.5rem !important; }
+        .block-container { padding-left: 0.75rem; padding-right: 0.75rem; }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 def get_db_connection():
     return psycopg2.connect(os.getenv("DATABASE_URL"))
