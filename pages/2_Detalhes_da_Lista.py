@@ -31,9 +31,40 @@ cloudinary.config(
 )
 
 LANGUAGES = [
-    "Português", "Inglês", "Japonês", "Italiano", "Espanhol", 
+    "Português", "Inglês", "Japonês", "Italiano", "Espanhol",
     "Alemão", "Francês", "Chinês Simplificado", "Chinês Tradicional", "Coreano"
 ]
+
+CARD_TYPES = [
+    "Normal", "Foil", "Reverse Foil", "Assinada", "Promo", "Textless", "Alterada", "Pre Release", "Edition One", "Shadowless", "Staff", "Misprint", "Shattered Holo", "Master Ball", "Poke Ball"
+]
+
+def ensure_card_type_column():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM information_schema.columns WHERE table_name = 'cards' AND column_name = 'card_type'")
+        exists = cur.fetchone() is not None
+        if not exists:
+            cur.execute("ALTER TABLE cards ADD COLUMN card_type VARCHAR(20)")
+            cur.execute("UPDATE cards SET card_type = 'Normal' WHERE card_type IS NULL")
+            cur.execute("ALTER TABLE cards ALTER COLUMN card_type SET NOT NULL")
+            cur.execute("ALTER TABLE cards DROP CONSTRAINT IF EXISTS cards_card_type_check")
+            cur.execute(
+                """
+                ALTER TABLE cards ADD CONSTRAINT cards_card_type_check CHECK (
+                    card_type IN (
+                        'Normal', 'Foil', 'Reverse Foil', 'Assinada', 'Promo', 'Textless', 'Alterada', 'Pre Release', 'Edition One', 'Shadowless', 'Staff', 'Misprint', 'Shattered Holo', 'Master Ball', 'Poke Ball'
+                    )
+                )
+                """
+            )
+            conn.commit()
+        cur.close()
+        conn.close()
+    except Exception:
+        # Se falhar, seguimos sem interromper a UX; o INSERT ainda pode falhar e mostrará o erro
+        pass
 
 # --- Verificação de Estado ---
 if 'current_list_id' not in st.session_state:
@@ -112,16 +143,16 @@ def show_card_image(image_url, card_name):
 @st.dialog("Editar Card")
 def edit_card_dialog(card_data):
     card_id, name, _, number, total, lang, _, grading_note, condition, owned = card_data
-    
+
     with st.form(key=f"edit_form_{card_id}"):
         st.write("Atenção: a imagem do card não pode ser alterada.")
-        
+
         new_name = st.text_input("Nome do Card", value=name)
-        
+
         c1, c2 = st.columns(2)
         new_card_number = c1.text_input("Número do Card", value=number)
         new_collection_total = c2.text_input("Total da Coleção (Opcional)", value=total)
-        
+
         c3, c4 = st.columns(2)
         new_language = c3.selectbox("Linguagem", options=LANGUAGES, index=LANGUAGES.index(lang) if lang in LANGUAGES else 0)
         new_condition = c4.selectbox(
@@ -129,9 +160,9 @@ def edit_card_dialog(card_data):
             options=['GM', 'M', 'NM', 'SP', 'MP', 'HP', 'D'],
             index=['GM', 'M', 'NM', 'SP', 'MP', 'HP', 'D'].index(condition)
         )
-        
+
         new_grading_note = st.number_input("Nota da Graduação (Opcional)", min_value=1, max_value=10, step=1, value=grading_note)
-        
+
         new_owned = st.checkbox("Tenho este card", value=owned)
 
         if st.form_submit_button("Salvar Alterações"):
@@ -143,14 +174,14 @@ if not cards:
 else:
     for i, card in enumerate(cards):
         card_id, name, photo_url, number, total, lang, order, grading_note, condition, owned = card
-        
+
         # Deixa a coluna da imagem mais larga para telas menores
         col1, col2 = st.columns([1, 2])
         with col1:
             st.image(photo_url, width=360)
             if st.button("🔍 Ampliar", key=f"zoom_{card_id}"):
                 show_card_image(photo_url, name)
-        
+
         with col2:
             st.subheader(name)
             if total:
@@ -172,7 +203,7 @@ else:
             with action_col2:
                 if st.button("Editar", key=f"edit_{card_id}"):
                     edit_card_dialog(card)
-            
+
             # Botões de Reordenação
             reorder_col1, reorder_col2, reorder_col3 = st.columns(3)
             with reorder_col1:
@@ -192,32 +223,36 @@ with st.expander("Adicionar Novo Card à Lista"):
     with st.form(key="add_card_form", clear_on_submit=True):
         card_name = st.text_input("Nome do Card")
         uploaded_file = st.file_uploader("Foto do Card", type=["png", "jpg", "jpeg"])
-        
+
         c1, c2 = st.columns(2)
         card_number = c1.text_input("Número do Card")
         collection_total = c2.text_input("Total da Coleção (Opcional)")
-        
+
+
         c3, c4 = st.columns(2)
         language = c3.selectbox("Linguagem", options=LANGUAGES)
         condition = c4.selectbox("Condição", options=['GM', 'M', 'NM', 'SP', 'MP', 'HP', 'D'])
-        
+
+        card_type = st.selectbox("Tipo do Card", options=CARD_TYPES, index=0)
+
         grading_note = st.number_input("Nota da Graduação (Opcional)", min_value=1, max_value=10, step=1, value=None)
-        
+
         owned = st.checkbox("Tenho este card", value=True)
 
         submitted = st.form_submit_button("Adicionar Card")
         if submitted:
             if uploaded_file and card_name and card_number:
                 try:
+                    ensure_card_type_column()
                     upload_result = cloudinary.uploader.upload(uploaded_file)
                     photo_url = upload_result['secure_url']
-                    
+
                     conn = get_db_connection()
                     cur = conn.cursor()
                     # Insere o card com a próxima ordem disponível
                     cur.execute(
-                        "INSERT INTO cards (name, photo_url, card_number, collection_total, language, list_id, card_order, condition, grading_note, owned) VALUES (%s, %s, %s, %s, %s, %s, (SELECT COALESCE(MAX(card_order), 0) + 1 FROM cards WHERE list_id = %s), %s, %s, %s)",
-                        (card_name, photo_url, card_number, collection_total, language, list_id, list_id, condition, grading_note, owned)
+                        "INSERT INTO cards (name, photo_url, card_number, collection_total, language, list_id, card_order, condition, grading_note, owned, card_type) VALUES (%s, %s, %s, %s, %s, %s, (SELECT COALESCE(MAX(card_order), 0) + 1 FROM cards WHERE list_id = %s), %s, %s, %s, %s)",
+                        (card_name, photo_url, card_number, collection_total, language, list_id, list_id, condition, grading_note, owned, card_type)
                     )
                     conn.commit()
                     cur.close()
