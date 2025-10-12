@@ -46,6 +46,10 @@
           <label class="form-label">Nota</label>
           <input type="number" min="1" max="10" class="form-control" name="grading_note" value="<%= card.grading_note || '' %>" />
         </div>
+        <div class="col-md-3">
+          <label class="form-label">Quantidade</label>
+          <input type="number" min="1" class="form-control" name="quantity" value="<%= card.quantity || 1 %>" />
+        </div>
         <div class="col-md-6">
           <label class="form-label">Tipo</label>
           <select class="form-select" name="card_type">

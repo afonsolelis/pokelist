@@ -13,6 +13,7 @@
         <th>Linguagem</th>
         <th>Condição</th>
         <th>Nota</th>
+        <th>Qtd.</th>
         <th>Status</th>
         <th>Tipo</th>
         <th></th>
@@ -20,7 +21,7 @@
     </thead>
     <tbody>
       <% if (!cards.length) { %>
-        <tr><td colspan="9"><div class="alert alert-info mb-0">Nenhum card nesta lista.</div></td></tr>
+        <tr><td colspan="10"><div class="alert alert-info mb-0">Nenhum card nesta lista.</div></td></tr>
       <% } %>
       <% cards.forEach(c => { %>
         <tr>
@@ -30,6 +31,7 @@
           <td><span class="badge badge-soft rounded-pill"><%= c.language || '-' %></span></td>
           <td><span class="badge bg-secondary-subtle text-body-secondary border"><%= c.condition || '-' %></span></td>
           <td><%= c.grading_note ?? '-' %></td>
+          <td><span class="badge bg-secondary-subtle text-body-secondary border"><%= c.quantity %></span></td>
           <td>
             <% if (c.owned) { %>
               <span class="badge bg-success-subtle text-success border">Na coleção</span>
@@ -92,6 +94,10 @@
         <div class="col-md-3">
           <label class="form-label">Nota</label>
           <input type="number" min="1" max="10" class="form-control" name="grading_note" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Quantidade</label>
+          <input type="number" min="1" class="form-control" name="quantity" value="1" />
         </div>
         <div class="col-md-3">
           <label class="form-label">Tipo</label>

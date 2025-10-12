@@ -86,7 +86,7 @@ const CARD_TYPES = [
 app.get('/', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT l.id, l.name, COUNT(c.id) as total
+      `SELECT l.id, l.name, COALESCE(SUM(c.quantity), 0) as total
        FROM lists l
        LEFT JOIN cards c ON c.list_id = l.id
        GROUP BY l.id, l.name
@@ -133,7 +133,8 @@ app.get('/list/:id', requireAuth, async (req, res, next) => {
     const list = listRes.rows[0]
     const cardsRes = await query(
       `SELECT id, name, photo_url, card_number, collection_total, language,
-              card_order, grading_note, condition, owned, COALESCE(card_type,'Normal') AS card_type
+              card_order, grading_note, condition, owned, quantity,
+              COALESCE(card_type,'Normal') AS card_type
          FROM cards WHERE list_id = $1 ORDER BY card_order ASC`,
       [listId]
     )
@@ -150,7 +151,8 @@ app.get('/list/:id/view', async (req, res, next) => {
     const list = listRes.rows[0]
     const cardsRes = await query(
       `SELECT id, name, photo_url, card_number, collection_total, language,
-              card_order, grading_note, condition, owned, COALESCE(card_type,'Normal') AS card_type
+              card_order, grading_note, condition, owned, quantity,
+              COALESCE(card_type,'Normal') AS card_type
          FROM cards WHERE list_id = $1 ORDER BY card_order ASC`,
       [listId]
     )
@@ -164,7 +166,7 @@ app.get('/card/:id', requireAuth, async (req, res, next) => {
     const cardId = parseInt(req.params.id, 10)
     const { rows } = await query(
       `SELECT c.id, c.name, c.photo_url, c.card_number, c.collection_total,
-              c.language, c.card_order, c.grading_note, c.condition, c.owned,
+              c.language, c.card_order, c.grading_note, c.condition, c.owned, c.quantity,
               COALESCE(c.card_type,'Normal') as card_type,
               l.id as list_id, l.name as list_name
          FROM cards c JOIN lists l ON l.id = c.list_id
@@ -182,7 +184,7 @@ app.get('/card/:id/view', async (req, res, next) => {
     const cardId = parseInt(req.params.id, 10)
     const { rows } = await query(
       `SELECT c.id, c.name, c.photo_url, c.card_number, c.collection_total,
-              c.language, c.card_order, c.grading_note, c.condition, c.owned,
+              c.language, c.card_order, c.grading_note, c.condition, c.owned, c.quantity,
               COALESCE(c.card_type,'Normal') as card_type,
               l.id as list_id, l.name as list_name
          FROM cards c JOIN lists l ON l.id = c.list_id
@@ -239,7 +241,7 @@ app.get('/search', async (req, res, next) => {
     const sql = `
       SELECT c.id, c.name, c.photo_url, c.card_number, c.collection_total,
              c.language, c.grading_note, c.condition, COALESCE(c.card_type,'Normal') as card_type,
-             c.owned, l.id as list_id, l.name as list_name
+             c.owned, c.quantity, l.id as list_id, l.name as list_name
         FROM cards c
         JOIN lists l ON l.id = c.list_id
        ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
@@ -264,6 +266,7 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
   try {
     const cardId = parseInt(req.params.id, 10)
     const { name, card_number, collection_total, language, condition, grading_note, owned, card_type } = req.body
+    const quantity = Math.max(1, parseInt(req.body.quantity, 10) || 1)
     let photo_url = null
     if (req.file && req.file.buffer) {
       const result = await uploadBuffer(req.file.buffer, { filename: undefined, folder: 'pokelist' })
@@ -272,20 +275,20 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
     if (photo_url) {
       await query(
         `UPDATE cards SET name=$1, card_number=$2, collection_total=$3, language=$4,
-                          condition=$5, grading_note=$6, owned=$7, card_type=$8, photo_url=$9
-           WHERE id=$10`,
+                          condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9, photo_url=$10
+           WHERE id=$11`,
         [name, card_number || null, collection_total || null, language || null,
          condition || null, grading_note ? parseInt(grading_note, 10) : null,
-         owned === 'on', card_type || null, photo_url, cardId]
+         owned === 'on', card_type || null, quantity, photo_url, cardId]
       )
     } else {
       await query(
         `UPDATE cards SET name=$1, card_number=$2, collection_total=$3, language=$4,
-                          condition=$5, grading_note=$6, owned=$7, card_type=$8
-           WHERE id=$9`,
+                          condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9
+           WHERE id=$10`,
         [name, card_number || null, collection_total || null, language || null,
          condition || null, grading_note ? parseInt(grading_note, 10) : null,
-         owned === 'on', card_type || null, cardId]
+         owned === 'on', card_type || null, quantity, cardId]
       )
     }
     res.redirect(`/card/${cardId}`)
@@ -306,6 +309,7 @@ app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res
   try {
     const listId = parseInt(req.params.id, 10)
     const { name, card_number, collection_total, language, condition, grading_note, owned, card_type } = req.body
+    const quantity = Math.max(1, parseInt(req.body.quantity, 10) || 1)
     if (!name || !req.file || !req.file.buffer) {
       return res.status(400).send('Nome e imagem são obrigatórios')
     }
@@ -313,13 +317,13 @@ app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res
     const photoUrl = result.secure_url
     await query(
       `INSERT INTO cards (name, photo_url, card_number, collection_total, language, list_id,
-                          card_order, condition, grading_note, owned, card_type)
+                          card_order, condition, grading_note, owned, card_type, quantity)
        VALUES ($1, $2, $3, $4, $5, $6,
               (SELECT COALESCE(MAX(card_order),0)+1 FROM cards WHERE list_id=$6),
-              $7, $8, $9, $10)`,
+              $7, $8, $9, $10, $11)`,
       [
         name, photoUrl, card_number || null, collection_total || null, language || null, listId,
-        condition || null, grading_note ? parseInt(grading_note, 10) : null, owned === 'on', card_type || 'Normal',
+        condition || null, grading_note ? parseInt(grading_note, 10) : null, owned === 'on', card_type || 'Normal', quantity,
       ]
     )
     res.redirect(`/list/${listId}`)
