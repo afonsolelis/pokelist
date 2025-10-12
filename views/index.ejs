@@ -1,9 +1,11 @@
 <div class="d-flex align-items-center mb-4">
   <h1 class="me-3 mb-0">Minhas Listas</h1>
-  <form class="d-flex flex-grow-1" method="post" action="/lists">
-    <input type="text" class="form-control me-2" name="name" placeholder="Criar nova lista…" required />
-    <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg me-1"></i>Criar</button>
-  </form>
+  <% if (authed) { %>
+    <form class="d-flex flex-grow-1" method="post" action="/lists">
+      <input type="text" class="form-control me-2" name="name" placeholder="Criar nova lista…" required />
+      <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg me-1"></i>Criar</button>
+    </form>
+  <% } %>
   </div>
 
 <div class="row g-3">
@@ -21,7 +23,9 @@
           <p class="card-text muted mt-2">Card(s) nesta lista</p>
           <div class="mt-auto d-flex gap-2">
             <a class="btn btn-outline-primary w-100" href="/list/<%= l.id %>/view"><i class="bi bi-eye me-1"></i>Visualizar</a>
-            <a class="btn btn-primary w-100" href="/list/<%= l.id %>"><i class="bi bi-pencil me-1"></i>Editar</a>
+            <% if (authed) { %>
+              <a class="btn btn-primary w-100" href="/list/<%= l.id %>"><i class="bi bi-pencil me-1"></i>Editar</a>
+            <% } %>
           </div>
         </div>
       </div>

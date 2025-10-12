@@ -33,6 +33,43 @@ app.locals.thumbCloudinary = thumbCloudinary
 // Upload setup (memory)
 const upload = multer({ storage: multer.memoryStorage() })
 
+// Auth helpers (cookie-based, simples)
+const PASSWORD = process.env.password || ''
+function parseCookies (cookieHeader = '') {
+  return Object.fromEntries(
+    cookieHeader.split(';').map(v => v.trim()).filter(Boolean).map(pair => {
+      const idx = pair.indexOf('=')
+      if (idx === -1) return [pair, '']
+      const k = decodeURIComponent(pair.slice(0, idx))
+      const v = decodeURIComponent(pair.slice(idx + 1))
+      return [k, v]
+    })
+  )
+}
+function isAuthed (req) {
+  const cookies = parseCookies(req.headers.cookie || '')
+  return cookies.auth === '1'
+}
+function authMiddleware (req, res, next) {
+  res.locals.authed = isAuthed(req)
+  next()
+}
+function requireAuth (req, res, next) {
+  if (isAuthed(req)) return next()
+  // Redireciona para view-only quando possível
+  if (req.path.startsWith('/list/') && /\/list\/(\d+)$/.test(req.path)) {
+    const id = req.path.match(/\/list\/(\d+)$/)[1]
+    return res.redirect(`/list/${id}/view`)
+  }
+  if (req.path.startsWith('/card/') && /\/card\/(\d+)$/.test(req.path)) {
+    const id = req.path.match(/\/card\/(\d+)$/)[1]
+    return res.redirect(`/card/${id}/view`)
+  }
+  return res.redirect('/login')
+}
+
+app.use(authMiddleware)
+
 // Constants
 const LANGUAGES = [
   'Português', 'Inglês', 'Japonês', 'Italiano', 'Espanhol',
@@ -59,8 +96,27 @@ app.get('/', async (req, res, next) => {
   } catch (e) { next(e) }
 })
 
+// Login simples
+app.get('/login', (req, res) => {
+  if (isAuthed(req)) return res.redirect('/')
+  res.render('login', { title: 'Login', error: '' })
+})
+app.post('/login', (req, res) => {
+  const { password } = req.body
+  if (PASSWORD && password === PASSWORD) {
+    res.setHeader('Set-Cookie', 'auth=1; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000') // 30 dias
+    return res.redirect('back')
+  }
+  res.status(401)
+  res.render('login', { title: 'Login', error: 'Senha inválida' })
+})
+app.post('/logout', (req, res) => {
+  res.setHeader('Set-Cookie', 'auth=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0')
+  res.redirect('back')
+})
+
 // Criar nova lista
-app.post('/lists', async (req, res, next) => {
+app.post('/lists', requireAuth, async (req, res, next) => {
   try {
     const name = (req.body.name || '').trim()
     if (name) await query('INSERT INTO lists (name) VALUES ($1)', [name])
@@ -69,7 +125,7 @@ app.post('/lists', async (req, res, next) => {
 })
 
 // Detalhe da lista
-app.get('/list/:id', async (req, res, next) => {
+app.get('/list/:id', requireAuth, async (req, res, next) => {
   try {
     const listId = parseInt(req.params.id, 10)
     const listRes = await query('SELECT id, name FROM lists WHERE id = $1', [listId])
@@ -103,7 +159,7 @@ app.get('/list/:id/view', async (req, res, next) => {
 })
 
 // Detalhe do card
-app.get('/card/:id', async (req, res, next) => {
+app.get('/card/:id', requireAuth, async (req, res, next) => {
   try {
     const cardId = parseInt(req.params.id, 10)
     const { rows } = await query(
@@ -204,7 +260,7 @@ app.get('/search', async (req, res, next) => {
 })
 
 // Atualizar card (com troca de imagem opcional)
-app.post('/card/:id', upload.single('photo'), async (req, res, next) => {
+app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next) => {
   try {
     const cardId = parseInt(req.params.id, 10)
     const { name, card_number, collection_total, language, condition, grading_note, owned, card_type } = req.body
@@ -237,7 +293,7 @@ app.post('/card/:id', upload.single('photo'), async (req, res, next) => {
 })
 
 // Alternar status
-app.post('/card/:id/toggle', async (req, res, next) => {
+app.post('/card/:id/toggle', requireAuth, async (req, res, next) => {
   try {
     const cardId = parseInt(req.params.id, 10)
     await query('UPDATE cards SET owned = NOT COALESCE(owned,false) WHERE id = $1', [cardId])
@@ -246,7 +302,7 @@ app.post('/card/:id/toggle', async (req, res, next) => {
 })
 
 // Criar novo card (com upload de imagem)
-app.post('/list/:id/cards', upload.single('photo'), async (req, res, next) => {
+app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res, next) => {
   try {
     const listId = parseInt(req.params.id, 10)
     const { name, card_number, collection_total, language, condition, grading_note, owned, card_type } = req.body
@@ -271,7 +327,7 @@ app.post('/list/:id/cards', upload.single('photo'), async (req, res, next) => {
 })
 
 // Remover card
-app.delete('/card/:id', async (req, res, next) => {
+app.delete('/card/:id', requireAuth, async (req, res, next) => {
   try {
     const cardId = parseInt(req.params.id, 10)
     const { rows } = await query('DELETE FROM cards WHERE id=$1 RETURNING list_id', [cardId])

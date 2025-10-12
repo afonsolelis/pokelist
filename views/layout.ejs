@@ -24,6 +24,13 @@
         </a>
         <div class="ms-auto d-flex align-items-center gap-2">
           <a class="btn btn-sm btn-outline-secondary" href="/search"><i class="bi bi-search me-1"></i>Busca</a>
+          <% if (authed) { %>
+            <form method="post" action="/logout" class="d-inline">
+              <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-box-arrow-right me-1"></i>Sair</button>
+            </form>
+          <% } else { %>
+            <a class="btn btn-sm btn-outline-primary" href="/login"><i class="bi bi-person-lock me-1"></i>Login</a>
+          <% } %>
           <button class="btn btn-sm btn-outline-primary" id="themeToggle" type="button">
             <i class="bi bi-moon-stars"></i>
           </button>
