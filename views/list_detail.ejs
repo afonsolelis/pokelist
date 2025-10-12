@@ -3,56 +3,7 @@
   <h1 class="ms-2 mb-0"><%= list.name %></h1>
 </div>
 
-<div class="table-responsive">
-  <table class="table align-middle row-hover">
-    <thead>
-      <tr>
-        <th style="width:80px">Imagem</th>
-        <th>Nome</th>
-        <th>Número</th>
-        <th>Linguagem</th>
-        <th>Condição</th>
-        <th>Nota</th>
-        <th>Qtd.</th>
-        <th>Status</th>
-        <th>Tipo</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <% if (!cards.length) { %>
-        <tr><td colspan="10"><div class="alert alert-info mb-0">Nenhum card nesta lista.</div></td></tr>
-      <% } %>
-      <% cards.forEach(c => { %>
-        <tr>
-          <td><img src="<%= thumbCloudinary(c.photo_url, 64) %>" class="thumb border" alt="thumb" /></td>
-          <td class="fw-medium"><%= c.name %></td>
-          <td class="muted"><%= c.collection_total ? `${c.card_number}/${c.collection_total}` : (c.card_number || '-') %></td>
-          <td><span class="badge badge-soft rounded-pill"><%= c.language || '-' %></span></td>
-          <td><span class="badge bg-secondary-subtle text-body-secondary border"><%= c.condition || '-' %></span></td>
-          <td><%= c.grading_note ?? '-' %></td>
-          <td><span class="badge bg-secondary-subtle text-body-secondary border"><%= c.quantity %></span></td>
-          <td>
-            <% if (c.owned) { %>
-              <span class="badge bg-success-subtle text-success border">Na coleção</span>
-            <% } else { %>
-              <span class="badge bg-warning-subtle text-warning border">Desejo</span>
-            <% } %>
-          </td>
-          <td><span class="badge bg-info-subtle text-info border"><%= c.card_type %></span></td>
-          <td>
-            <a class="btn btn-sm btn-outline-primary" href="/card/<%= c.id %>"><i class="bi bi-pencil"></i></a>
-            <form class="d-inline" method="post" action="/card/<%= c.id %>?_method=DELETE" onsubmit="return confirm('Remover este card?')">
-              <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
-            </form>
-          </td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
-  </div>
-
-<div class="card mt-4">
+<div class="card mb-4">
   <div class="card-body">
     <h5 class="card-title">Adicionar novo card</h5>
     <form method="post" action="/list/<%= list.id %>/cards" enctype="multipart/form-data">
@@ -119,4 +70,53 @@
       </div>
     </form>
   </div>
+  </div>
+
+<div class="table-responsive">
+  <table class="table align-middle row-hover">
+    <thead>
+      <tr>
+        <th style="width:80px">Imagem</th>
+        <th>Nome</th>
+        <th>Número</th>
+        <th>Linguagem</th>
+        <th>Condição</th>
+        <th>Nota</th>
+        <th>Qtd.</th>
+        <th>Status</th>
+        <th>Tipo</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!cards.length) { %>
+        <tr><td colspan="10"><div class="alert alert-info mb-0">Nenhum card nesta lista.</div></td></tr>
+      <% } %>
+      <% cards.forEach(c => { %>
+        <tr>
+          <td><img src="<%= thumbCloudinary(c.photo_url, 64) %>" class="thumb border" alt="thumb" /></td>
+          <td class="fw-medium"><%= c.name %></td>
+          <td class="muted"><%= c.collection_total ? `${c.card_number}/${c.collection_total}` : (c.card_number || '-') %></td>
+          <td><span class="badge badge-soft rounded-pill"><%= c.language || '-' %></span></td>
+          <td><span class="badge bg-secondary-subtle text-body-secondary border"><%= c.condition || '-' %></span></td>
+          <td><%= c.grading_note ?? '-' %></td>
+          <td><span class="badge bg-secondary-subtle text-body-secondary border"><%= c.quantity %></span></td>
+          <td>
+            <% if (c.owned) { %>
+              <span class="badge bg-success-subtle text-success border">Na coleção</span>
+            <% } else { %>
+              <span class="badge bg-warning-subtle text-warning border">Desejo</span>
+            <% } %>
+          </td>
+          <td><span class="badge bg-info-subtle text-info border"><%= c.card_type %></span></td>
+          <td>
+            <a class="btn btn-sm btn-outline-primary" href="/card/<%= c.id %>"><i class="bi bi-pencil"></i></a>
+            <form class="d-inline" method="post" action="/card/<%= c.id %>?_method=DELETE" onsubmit="return confirm('Remover este card?')">
+              <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
   </div>
