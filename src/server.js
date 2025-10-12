@@ -34,7 +34,7 @@ app.locals.thumbCloudinary = thumbCloudinary
 const upload = multer({ storage: multer.memoryStorage() })
 
 // Auth helpers (cookie-based, simples)
-const PASSWORD = process.env.password || ''
+const PASSWORD = process.env.PASSWORD || ''
 function parseCookies (cookieHeader = '') {
   return Object.fromEntries(
     cookieHeader.split(';').map(v => v.trim()).filter(Boolean).map(pair => {
