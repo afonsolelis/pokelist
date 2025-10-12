@@ -1,0 +1,75 @@
+:root {
+  --bg-body: #0b0c10;
+  --bg-surface: #111318;
+  --border: rgba(255,255,255,0.08);
+  --text: #e8eaf0;
+  --muted: #aab2c0;
+  --primary: #6ea8fe;
+  --ring: rgba(110,168,254,0.35);
+}
+
+html[data-theme="light"] {
+  --bg-body: #f7f8fb;
+  --bg-surface: #ffffff;
+  --border: rgba(10,10,10,0.08);
+  --text: #0b0c10;
+  --muted: #4b5565;
+  --primary: #3b82f6;
+  --ring: rgba(59,130,246,0.25);
+}
+
+body {
+  background: var(--bg-body);
+  color: var(--text);
+}
+
+.glass-nav {
+  backdrop-filter: saturate(1.2) blur(6px);
+  background: color-mix(in oklab, var(--bg-body) 70%, transparent);
+}
+
+.card, .table, .form-control, .form-select, .btn, .alert {
+  border-color: var(--border) !important;
+}
+
+.card {
+  background: var(--bg-surface);
+  box-shadow: 0 1px 0 0 var(--border), 0 8px 30px -12px rgba(0,0,0,0.35);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.card:hover { transform: translateY(-2px); }
+
+.table thead th {
+  background: color-mix(in oklab, var(--bg-surface) 92%, transparent);
+}
+.table td, .table th { vertical-align: middle; }
+
+.badge-soft {
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+  color: var(--primary);
+  border: 1px solid color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+.btn-outline-primary { border-color: var(--primary); color: var(--primary); }
+.btn-outline-primary:hover { background: var(--primary); color: #fff; }
+
+.thumb {
+  width: 64px; height: 64px; object-fit: cover; border-radius: .5rem;
+  box-shadow: 0 4px 18px -10px rgba(0,0,0,0.6);
+}
+
+img { image-rendering: auto; }
+
+.muted { color: var(--muted); }
+
+.row-hover tbody tr { transition: background .15s ease; }
+.row-hover tbody tr:hover {
+  background: color-mix(in oklab, var(--primary) 6%, transparent);
+}
+
+.sticky-preview { position: sticky; top: 1rem; }
+
+.form-section { border-top: 1px dashed var(--border); padding-top: 1rem; margin-top: .5rem; }
+
+.cursor-zoom-in { cursor: zoom-in; }
+.modal-fullimg { max-height: calc(100vh - 6rem); object-fit: contain; }

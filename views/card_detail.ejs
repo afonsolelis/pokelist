@@ -1,0 +1,79 @@
+<div class="d-flex align-items-center mb-3">
+  <a class="btn btn-outline-secondary" href="/list/<%= card.list_id %>"><i class="bi bi-arrow-left"></i></a>
+  <h1 class="ms-2 mb-0"><%= card.name %></h1>
+  <div class="ms-auto muted">Lista: <%= card.list_name %></div>
+  </div>
+
+<div class="row g-4">
+  <div class="col-12 col-md-5 col-lg-4">
+    <div class="sticky-preview">
+      <img class="img-fluid border rounded" src="<%= normalizeCloudinary(card.photo_url, {width: 900, height: 1200}) %>" alt="card" />
+    </div>
+  </div>
+  <div class="col-12 col-md-7 col-lg-8">
+    <form method="post" action="/card/<%= card.id %>" enctype="multipart/form-data">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Nome</label>
+          <input type="text" class="form-control" name="name" value="<%= card.name %>" required />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Número</label>
+          <input type="text" class="form-control" name="card_number" value="<%= card.card_number || '' %>" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Total coleção</label>
+          <input type="text" class="form-control" name="collection_total" value="<%= card.collection_total || '' %>" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Linguagem</label>
+          <select class="form-select" name="language">
+            <% LANGUAGES.forEach(l => { %>
+              <option value="<%= l %>" <%= card.language === l ? 'selected' : '' %>><%= l %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Condição</label>
+          <select class="form-select" name="condition">
+            <option value=""></option>
+            <% CONDITIONS.forEach(c => { %>
+              <option value="<%= c %>" <%= card.condition === c ? 'selected' : '' %>><%= c %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Nota</label>
+          <input type="number" min="1" max="10" class="form-control" name="grading_note" value="<%= card.grading_note || '' %>" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Tipo</label>
+          <select class="form-select" name="card_type">
+            <% CARD_TYPES.forEach(t => { %>
+              <option value="<%= t %>" <%= card.card_type === t ? 'selected' : '' %>><%= t %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Trocar imagem (opcional)</label>
+          <input type="file" class="form-control" name="photo" accept="image/*" />
+        </div>
+        <div class="col-md-6">
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" id="owned" name="owned" <%= card.owned ? 'checked' : '' %> />
+            <label class="form-check-label" for="owned">Tenho este card</label>
+          </div>
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Salvar</button>
+          <form class="d-inline" method="post" action="/card/<%= card.id %>/toggle">
+            <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat me-1"></i>Status</button>
+          </form>
+          <form class="d-inline" method="post" action="/card/<%= card.id %>?_method=DELETE" onsubmit="return confirm('Remover este card?')">
+            <button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash me-1"></i>Remover</button>
+          </form>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

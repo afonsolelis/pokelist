@@ -1,0 +1,55 @@
+<div class="d-flex align-items-center mb-3">
+  <a class="btn btn-outline-secondary" href="/list/<%= card.list_id %>/view"><i class="bi bi-arrow-left"></i></a>
+  <h1 class="ms-2 mb-0"><%= card.name %></h1>
+  <div class="ms-auto d-flex gap-2">
+    <a class="btn btn-sm btn-outline-primary" href="/card/<%= card.id %>"><i class="bi bi-pencil me-1"></i>Editar</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-12 col-lg-6">
+    <div class="sticky-preview">
+      <img class="img-fluid border rounded" src="<%= normalizeCloudinary(card.photo_url, { width: 1400, height: 2000 }) %>" alt="<%= card.name %>" />
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Detalhes</h5>
+        <div class="row g-3">
+          <div class="col-12 col-sm-6">
+            <div class="muted">Número</div>
+            <div class="fw-medium"><%= card.collection_total ? `${card.card_number}/${card.collection_total}` : (card.card_number || '-') %></div>
+          </div>
+          <div class="col-12 col-sm-6">
+            <div class="muted">Idioma</div>
+            <div class="fw-medium"><%= card.language || '-' %></div>
+          </div>
+          <div class="col-12 col-sm-6">
+            <div class="muted">Condição</div>
+            <div class="fw-medium"><%= card.condition || '-' %></div>
+          </div>
+          <div class="col-12 col-sm-6">
+            <div class="muted">Nota</div>
+            <div class="fw-medium"><%= card.grading_note ?? '-' %></div>
+          </div>
+          <div class="col-12 col-sm-6">
+            <div class="muted">Tipo</div>
+            <div class="fw-medium"><%= card.card_type %></div>
+          </div>
+          <div class="col-12 col-sm-6">
+            <div class="muted">Status</div>
+            <div>
+              <% if (card.owned) { %>
+                <span class="badge bg-success-subtle text-success border">Na coleção</span>
+              <% } else { %>
+                <span class="badge bg-warning-subtle text-warning border">Desejo</span>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
