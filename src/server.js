@@ -207,7 +207,7 @@ app.get('/card/:id/view', async (req, res, next) => {
 // Busca global por cards (independente da coleção)
 app.get('/search', async (req, res, next) => {
   try {
-    const { q = '', condition = '', language = '', card_type = '', owned = '', grading_min = '', grading_max = '' } = req.query
+    const { q = '', condition = '', language = '', card_type = '', rarity = '', owned = '', grading_min = '', grading_max = '' } = req.query
     const where = []
     const params = []
 
@@ -226,6 +226,10 @@ app.get('/search', async (req, res, next) => {
     if (card_type) {
       params.push(card_type)
       where.push(`COALESCE(c.card_type,'Normal') = $${params.length}`)
+    }
+    if (rarity) {
+      params.push(rarity)
+      where.push(`c.rarity = $${params.length}`)
     }
     if (owned === 'true' || owned === 'false') {
       params.push(owned === 'true')
@@ -261,10 +265,11 @@ app.get('/search', async (req, res, next) => {
     res.render('search', {
       title: 'Busca',
       results: rows,
-      query: { q, condition, language, card_type, owned, grading_min, grading_max },
+      query: { q, condition, language, card_type, rarity, owned, grading_min, grading_max },
       LANGUAGES,
       CONDITIONS,
       CARD_TYPES,
+      RARITIES,
     })
   } catch (e) { next(e) }
 })

@@ -38,6 +38,15 @@
         </select>
       </div>
       <div class="col-6 col-md-2">
+        <label class="form-label">Raridade</label>
+        <select class="form-select" name="rarity">
+          <option value=""></option>
+          <% RARITIES.forEach(r => { %>
+            <option value="<%= r %>" <%= query.rarity === r ? 'selected' : '' %>><%= r %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
         <label class="form-label">Status</label>
         <select class="form-select" name="owned">
           <option value=""></option>
