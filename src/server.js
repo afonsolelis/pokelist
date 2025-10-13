@@ -77,12 +77,12 @@ const LANGUAGES = [
 ]
 const CONDITIONS = ['GM', 'M', 'NM', 'SP', 'MP', 'HP', 'D']
 const RARITIES = [
-  'Common', 'Uncommon', 'Rare', 'Holo Rare',
-  'Double Rare', 'Ultra Rare',
-  'Illustration Rare', 'Special Illustration Rare',
-  'Hyper Rare', 'Secret Rare',
-  'Promo', 'Amazing Rare', 'Radiant Rare',
-  'Shiny Rare', 'Trainer Gallery',
+  'Comum', 'Incomum', 'Rara', 'Rara Holo',
+  'Rara Dupla', 'Ultra Rara',
+  'Rara Ilustração', 'Rara Ilustração Especial',
+  'Rara Hiper', 'Rara Secreta',
+  'Promo', 'Rara Incrível', 'Rara Radiante',
+  'Rara Brilhante', 'Galeria de Treinadores',
 ]
 const CARD_TYPES = [
   'Normal', 'Foil', 'Reverse Foil', 'Assinada', 'Promo', 'Textless', 'Alterada',
