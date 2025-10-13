@@ -267,6 +267,11 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
     const cardId = parseInt(req.params.id, 10)
     const { name, card_number, collection_total, language, condition, grading_note, owned, card_type } = req.body
     const quantity = Math.max(1, parseInt(req.body.quantity, 10) || 1)
+    const lang = (language || '').trim()
+    if (!lang) {
+      res.status(400).send('Idioma é obrigatório')
+      return
+    }
     let photo_url = null
     if (req.file && req.file.buffer) {
       const result = await uploadBuffer(req.file.buffer, { filename: undefined, folder: 'pokelist' })
@@ -277,7 +282,7 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
         `UPDATE cards SET name=$1, card_number=$2, collection_total=$3, language=$4,
                           condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9, photo_url=$10
            WHERE id=$11`,
-        [name, card_number || null, collection_total || null, language || null,
+        [name, card_number || null, collection_total || null, lang,
          condition || null, grading_note ? parseInt(grading_note, 10) : null,
          owned === 'on', card_type || null, quantity, photo_url, cardId]
       )
@@ -286,7 +291,7 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
         `UPDATE cards SET name=$1, card_number=$2, collection_total=$3, language=$4,
                           condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9
            WHERE id=$10`,
-        [name, card_number || null, collection_total || null, language || null,
+        [name, card_number || null, collection_total || null, lang,
          condition || null, grading_note ? parseInt(grading_note, 10) : null,
          owned === 'on', card_type || null, quantity, cardId]
       )
@@ -313,6 +318,10 @@ app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res
     if (!name || !req.file || !req.file.buffer) {
       return res.status(400).send('Nome e imagem são obrigatórios')
     }
+    const lang = (language || '').trim()
+    if (!lang) {
+      return res.status(400).send('Idioma é obrigatório')
+    }
     const result = await uploadBuffer(req.file.buffer, { folder: 'pokelist' })
     const photoUrl = result.secure_url
     await query(
@@ -322,7 +331,7 @@ app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res
               (SELECT COALESCE(MAX(card_order),0)+1 FROM cards WHERE list_id=$6),
               $7, $8, $9, $10, $11)`,
       [
-        name, photoUrl, card_number || null, collection_total || null, language || null, listId,
+        name, photoUrl, card_number || null, collection_total || null, lang, listId,
         condition || null, grading_note ? parseInt(grading_note, 10) : null, owned === 'on', card_type || 'Normal', quantity,
       ]
     )
