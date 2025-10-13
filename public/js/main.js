@@ -29,7 +29,7 @@
 })()
 
 // Image zoom modal (Bootstrap)
-(function() {
+; (function() {
   const modalEl = document.getElementById('imageModal')
   const imgEl = document.getElementById('imageModalImg')
   const titleEl = document.getElementById('imageModalTitle')
