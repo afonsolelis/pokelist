@@ -272,6 +272,26 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
       res.status(400).send('Idioma é obrigatório')
       return
     }
+    const typeNorm = (card_type || 'Normal').trim()
+    const condNorm = (condition || '').trim()
+
+    // Enforce uniqueness within the same list: name + language + type + condition
+    const { rows: infoRows } = await query('SELECT list_id FROM cards WHERE id = $1', [cardId])
+    const listId = infoRows[0]?.list_id
+    if (!listId) return res.status(404).send('Card não encontrado')
+
+    const { rows: dupRows } = await query(
+      `SELECT id FROM cards
+        WHERE list_id = $1 AND id <> $2 AND name = $3 AND language = $4
+          AND COALESCE(card_type,'Normal') = $5
+          AND COALESCE(condition,'') = $6
+        LIMIT 1`,
+      [listId, cardId, name, lang, typeNorm, condNorm]
+    )
+    if (dupRows.length) {
+      res.status(400).send('Já existe um card com mesmo nome, idioma, tipo e condição nesta coleção. Atualize a quantidade.')
+      return
+    }
     let photo_url = null
     if (req.file && req.file.buffer) {
       const result = await uploadBuffer(req.file.buffer, { filename: undefined, folder: 'pokelist' })
@@ -283,8 +303,8 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
                           condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9, photo_url=$10
            WHERE id=$11`,
         [name, card_number || null, collection_total || null, lang,
-         condition || null, grading_note ? parseInt(grading_note, 10) : null,
-         owned === 'on', card_type || null, quantity, photo_url, cardId]
+         condNorm || null, grading_note ? parseInt(grading_note, 10) : null,
+         owned === 'on', typeNorm, quantity, photo_url, cardId]
       )
     } else {
       await query(
@@ -292,8 +312,8 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
                           condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9
            WHERE id=$10`,
         [name, card_number || null, collection_total || null, lang,
-         condition || null, grading_note ? parseInt(grading_note, 10) : null,
-         owned === 'on', card_type || null, quantity, cardId]
+         condNorm || null, grading_note ? parseInt(grading_note, 10) : null,
+         owned === 'on', typeNorm, quantity, cardId]
       )
     }
     res.redirect(`/card/${cardId}`)
@@ -322,6 +342,25 @@ app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res
     if (!lang) {
       return res.status(400).send('Idioma é obrigatório')
     }
+    const typeNorm = (card_type || 'Normal').trim()
+    const condNorm = (condition || '').trim()
+
+    // Check duplicate within the same list
+    const { rows: dupRows } = await query(
+      `SELECT id, quantity FROM cards
+         WHERE list_id = $1 AND name = $2 AND language = $3
+           AND COALESCE(card_type,'Normal') = $4
+           AND COALESCE(condition,'') = $5
+         LIMIT 1`,
+      [listId, name, lang, typeNorm, condNorm]
+    )
+    if (dupRows.length) {
+      const existingId = dupRows[0].id
+      await query('UPDATE cards SET quantity = quantity + $1 WHERE id = $2', [quantity, existingId])
+      return res.redirect(`/list/${listId}`)
+    }
+
+    // No duplicate: proceed with upload and insert
     const result = await uploadBuffer(req.file.buffer, { folder: 'pokelist' })
     const photoUrl = result.secure_url
     await query(
@@ -332,7 +371,7 @@ app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res
               $7, $8, $9, $10, $11)`,
       [
         name, photoUrl, card_number || null, collection_total || null, lang, listId,
-        condition || null, grading_note ? parseInt(grading_note, 10) : null, owned === 'on', card_type || 'Normal', quantity,
+        condNorm || null, grading_note ? parseInt(grading_note, 10) : null, owned === 'on', typeNorm, quantity,
       ]
     )
     res.redirect(`/list/${listId}`)
