@@ -50,11 +50,20 @@
           <label class="form-label">Quantidade</label>
           <input type="number" min="1" class="form-control" name="quantity" value="<%= card.quantity || 1 %>" />
         </div>
-        <div class="col-md-6">
+        <div class="col-md-3">
           <label class="form-label">Tipo</label>
           <select class="form-select" name="card_type">
             <% CARD_TYPES.forEach(t => { %>
               <option value="<%= t %>" <%= card.card_type === t ? 'selected' : '' %>><%= t %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Raridade</label>
+          <select class="form-select" name="rarity">
+            <option value=""></option>
+            <% RARITIES.forEach(r => { %>
+              <option value="<%= r %>" <%= card.rarity === r ? 'selected' : '' %>><%= r %></option>
             <% }) %>
           </select>
         </div>

@@ -51,6 +51,15 @@
           <input type="number" min="1" class="form-control" name="quantity" value="1" />
         </div>
         <div class="col-md-3">
+          <label class="form-label">Raridade</label>
+          <select class="form-select" name="rarity">
+            <option value=""></option>
+            <% RARITIES.forEach(r => { %>
+              <option value="<%= r %>"><%= r %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-3">
           <label class="form-label">Tipo</label>
           <select class="form-select" name="card_type">
             <% CARD_TYPES.forEach(t => { %>
@@ -84,13 +93,14 @@
         <th>Nota</th>
         <th>Qtd.</th>
         <th>Status</th>
+        <th>Raridade</th>
         <th>Tipo</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
       <% if (!cards.length) { %>
-        <tr><td colspan="10"><div class="alert alert-info mb-0">Nenhum card nesta lista.</div></td></tr>
+        <tr><td colspan="11"><div class="alert alert-info mb-0">Nenhum card nesta lista.</div></td></tr>
       <% } %>
       <% cards.forEach(c => { %>
         <tr>
@@ -108,6 +118,7 @@
               <span class="badge bg-warning-subtle text-warning border">Desejo</span>
             <% } %>
           </td>
+          <td><span class="badge bg-secondary-subtle text-body-secondary border"><%= c.rarity || '-' %></span></td>
           <td><span class="badge bg-info-subtle text-info border"><%= c.card_type %></span></td>
           <td>
             <a class="btn btn-sm btn-outline-primary" href="/card/<%= c.id %>"><i class="bi bi-pencil"></i></a>

@@ -76,6 +76,14 @@ const LANGUAGES = [
   'Alemão', 'Francês', 'Chinês Simplificado', 'Chinês Tradicional', 'Coreano',
 ]
 const CONDITIONS = ['GM', 'M', 'NM', 'SP', 'MP', 'HP', 'D']
+const RARITIES = [
+  'Common', 'Uncommon', 'Rare', 'Holo Rare',
+  'Double Rare', 'Ultra Rare',
+  'Illustration Rare', 'Special Illustration Rare',
+  'Hyper Rare', 'Secret Rare',
+  'Promo', 'Amazing Rare', 'Radiant Rare',
+  'Shiny Rare', 'Trainer Gallery',
+]
 const CARD_TYPES = [
   'Normal', 'Foil', 'Reverse Foil', 'Assinada', 'Promo', 'Textless', 'Alterada',
   'Pre Release', 'Edition One', 'Shadowless', 'Staff', 'Misprint', 'Shattered Holo',
@@ -133,12 +141,12 @@ app.get('/list/:id', requireAuth, async (req, res, next) => {
     const list = listRes.rows[0]
     const cardsRes = await query(
       `SELECT id, name, photo_url, card_number, collection_total, language,
-              card_order, grading_note, condition, owned, quantity,
+              card_order, grading_note, condition, owned, quantity, rarity,
               COALESCE(card_type,'Normal') AS card_type
          FROM cards WHERE list_id = $1 ORDER BY card_order ASC`,
       [listId]
     )
-    res.render('list_detail', { title: list.name, list, cards: cardsRes.rows, LANGUAGES, CONDITIONS, CARD_TYPES })
+    res.render('list_detail', { title: list.name, list, cards: cardsRes.rows, LANGUAGES, CONDITIONS, CARD_TYPES, RARITIES })
   } catch (e) { next(e) }
 })
 
@@ -151,7 +159,7 @@ app.get('/list/:id/view', async (req, res, next) => {
     const list = listRes.rows[0]
     const cardsRes = await query(
       `SELECT id, name, photo_url, card_number, collection_total, language,
-              card_order, grading_note, condition, owned, quantity,
+              card_order, grading_note, condition, owned, quantity, rarity,
               COALESCE(card_type,'Normal') AS card_type
          FROM cards WHERE list_id = $1 ORDER BY card_order ASC`,
       [listId]
@@ -166,7 +174,7 @@ app.get('/card/:id', requireAuth, async (req, res, next) => {
     const cardId = parseInt(req.params.id, 10)
     const { rows } = await query(
       `SELECT c.id, c.name, c.photo_url, c.card_number, c.collection_total,
-              c.language, c.card_order, c.grading_note, c.condition, c.owned, c.quantity,
+              c.language, c.card_order, c.grading_note, c.condition, c.owned, c.quantity, c.rarity,
               COALESCE(c.card_type,'Normal') as card_type,
               l.id as list_id, l.name as list_name
          FROM cards c JOIN lists l ON l.id = c.list_id
@@ -174,7 +182,7 @@ app.get('/card/:id', requireAuth, async (req, res, next) => {
       [cardId]
     )
     if (!rows.length) return res.status(404).send('Card não encontrado')
-    res.render('card_detail', { title: rows[0].name, card: rows[0], LANGUAGES, CONDITIONS, CARD_TYPES })
+    res.render('card_detail', { title: rows[0].name, card: rows[0], LANGUAGES, CONDITIONS, CARD_TYPES, RARITIES })
   } catch (e) { next(e) }
 })
 
@@ -184,7 +192,7 @@ app.get('/card/:id/view', async (req, res, next) => {
     const cardId = parseInt(req.params.id, 10)
     const { rows } = await query(
       `SELECT c.id, c.name, c.photo_url, c.card_number, c.collection_total,
-              c.language, c.card_order, c.grading_note, c.condition, c.owned, c.quantity,
+              c.language, c.card_order, c.grading_note, c.condition, c.owned, c.quantity, c.rarity,
               COALESCE(c.card_type,'Normal') as card_type,
               l.id as list_id, l.name as list_name
          FROM cards c JOIN lists l ON l.id = c.list_id
@@ -241,7 +249,7 @@ app.get('/search', async (req, res, next) => {
     const sql = `
       SELECT c.id, c.name, c.photo_url, c.card_number, c.collection_total,
              c.language, c.grading_note, c.condition, COALESCE(c.card_type,'Normal') as card_type,
-             c.owned, c.quantity, l.id as list_id, l.name as list_name
+             c.owned, c.quantity, c.rarity, l.id as list_id, l.name as list_name
         FROM cards c
         JOIN lists l ON l.id = c.list_id
        ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
@@ -265,7 +273,7 @@ app.get('/search', async (req, res, next) => {
 app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next) => {
   try {
     const cardId = parseInt(req.params.id, 10)
-    const { name, card_number, collection_total, language, condition, grading_note, owned, card_type } = req.body
+    const { name, card_number, collection_total, language, condition, grading_note, owned, card_type, rarity } = req.body
     const quantity = Math.max(1, parseInt(req.body.quantity, 10) || 1)
     const lang = (language || '').trim()
     if (!lang) {
@@ -274,6 +282,7 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
     }
     const typeNorm = (card_type || 'Normal').trim()
     const condNorm = (condition || '').trim()
+    const rarityNorm = (rarity || '').trim() || null
 
     // Enforce uniqueness within the same list: name + language + type + condition
     const { rows: infoRows } = await query('SELECT list_id FROM cards WHERE id = $1', [cardId])
@@ -300,20 +309,20 @@ app.post('/card/:id', requireAuth, upload.single('photo'), async (req, res, next
     if (photo_url) {
       await query(
         `UPDATE cards SET name=$1, card_number=$2, collection_total=$3, language=$4,
-                          condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9, photo_url=$10
-           WHERE id=$11`,
+                          condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9, rarity=$10, photo_url=$11
+           WHERE id=$12`,
         [name, card_number || null, collection_total || null, lang,
          condNorm || null, grading_note ? parseInt(grading_note, 10) : null,
-         owned === 'on', typeNorm, quantity, photo_url, cardId]
+         owned === 'on', typeNorm, quantity, rarityNorm, photo_url, cardId]
       )
     } else {
       await query(
         `UPDATE cards SET name=$1, card_number=$2, collection_total=$3, language=$4,
-                          condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9
-           WHERE id=$10`,
+                          condition=$5, grading_note=$6, owned=$7, card_type=$8, quantity=$9, rarity=$10
+           WHERE id=$11`,
         [name, card_number || null, collection_total || null, lang,
          condNorm || null, grading_note ? parseInt(grading_note, 10) : null,
-         owned === 'on', typeNorm, quantity, cardId]
+         owned === 'on', typeNorm, quantity, rarityNorm, cardId]
       )
     }
     res.redirect(`/card/${cardId}`)
@@ -333,7 +342,7 @@ app.post('/card/:id/toggle', requireAuth, async (req, res, next) => {
 app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res, next) => {
   try {
     const listId = parseInt(req.params.id, 10)
-    const { name, card_number, collection_total, language, condition, grading_note, owned, card_type } = req.body
+    const { name, card_number, collection_total, language, condition, grading_note, owned, card_type, rarity } = req.body
     const quantity = Math.max(1, parseInt(req.body.quantity, 10) || 1)
     if (!name || !req.file || !req.file.buffer) {
       return res.status(400).send('Nome e imagem são obrigatórios')
@@ -344,6 +353,7 @@ app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res
     }
     const typeNorm = (card_type || 'Normal').trim()
     const condNorm = (condition || '').trim()
+    const rarityNorm = (rarity || '').trim() || null
 
     // Check duplicate within the same list
     const { rows: dupRows } = await query(
@@ -365,13 +375,13 @@ app.post('/list/:id/cards', requireAuth, upload.single('photo'), async (req, res
     const photoUrl = result.secure_url
     await query(
       `INSERT INTO cards (name, photo_url, card_number, collection_total, language, list_id,
-                          card_order, condition, grading_note, owned, card_type, quantity)
+                          card_order, condition, grading_note, owned, card_type, quantity, rarity)
        VALUES ($1, $2, $3, $4, $5, $6,
               (SELECT COALESCE(MAX(card_order),0)+1 FROM cards WHERE list_id=$6),
-              $7, $8, $9, $10, $11)`,
+              $7, $8, $9, $10, $11, $12)`,
       [
         name, photoUrl, card_number || null, collection_total || null, lang, listId,
-        condNorm || null, grading_note ? parseInt(grading_note, 10) : null, owned === 'on', typeNorm, quantity,
+        condNorm || null, grading_note ? parseInt(grading_note, 10) : null, owned === 'on', typeNorm, quantity, rarityNorm,
       ]
     )
     res.redirect(`/list/${listId}`)
